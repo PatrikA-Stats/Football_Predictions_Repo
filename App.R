@@ -6,11 +6,11 @@ library(dplyr)
 library(readr)
 library(lubridate)
 library(regista)
-
+library(httr)
+library(jsonlite)
+library(rvest)
 
 source("functions.R")
-
-#theta <- readRDS("theta_final.rds")
 
 season_urls <- c(
   "2026-27" = "2627",
@@ -53,25 +53,60 @@ ui <- fluidPage(
   
   titlePanel("Football Data Overview"),
   
-  checkboxGroupInput(
-    "seasons",
-    "Premier League Data",
-    choices = names(season_urls),
-    selected = c("2026-27", "2025-26")
-  ),
+  tabsetPanel(
+    
+    tabPanel(
+      
+      "Data Overview",
+      
+      checkboxGroupInput(
+        "seasons",
+        "Premier League Data",
+        choices = names(season_urls),
+        selected = c("2026-27", "2025-26")
+      ),
+      
+      actionButton(
+        "load_data",
+        "Load and Clean Data"
+      ),
+      
+      br(), br(),
+      
+      h3("Dataset Summary"),
+      verbatimTextOutput("summary"),
+      
+      h3("Data Preview"),
+      tableOutput("preview")
+      
+    ),
+    
+    tabPanel(
+      
+      "Predict Upcoming Fixture",
+      
+      br(),
+      
+      selectInput(
+        "home_team",
+        "Home Team",
+        choices = NULL
+      ),
+      
+      selectInput(
+        "away_team",
+        "Away Team",
+        choices = NULL
+      ),
+      
+      br(),
+      
+      verbatimTextOutput("fixture_details")
+      
+    )
+    
+  )
   
-  actionButton(
-    "load_data",
-    "Load and Clean Data"
-  ),
-  
-  br(), br(),
-  
-  h3("Dataset Summary"),
-  verbatimTextOutput("summary"),
-  
-  h3("Data Preview"),
-  tableOutput("preview")
 )
 
 server <- function(input, output, session) {
@@ -199,7 +234,54 @@ server <- function(input, output, session) {
     
   }, rownames = FALSE)
   
+  fixtures <- reactive({
+    
+    get_next_fixtures()
+    
+  })
+  
+  observe({
+    
+    req(data_clean())
+    
+    teams <- sort(
+      unique(
+        as.character(data_clean()$H.Team)
+      )
+    )
+    
+    updateSelectInput(
+      session,
+      "home_team",
+      choices = teams
+    )
+    
+  })
+  
+  observe({
+    
+    req(data_clean())
+    req(input$home_team)
+    
+    teams <- sort(
+      unique(
+        as.character(data_clean()$H.Team)
+      )
+    )
+    
+    updateSelectInput(
+      session,
+      "away_team",
+      choices = setdiff(
+        teams,
+        input$home_team
+      )
+    )
+    
+  })
+  
 }
 
 shinyApp(ui = ui, server = server)
+
 
