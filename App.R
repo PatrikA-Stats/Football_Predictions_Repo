@@ -5,7 +5,8 @@ library(shiny)
 library(dplyr)
 library(readr)
 library(lubridate)
-library(DT)
+library(regista)
+
 
 source("functions.R")
 
@@ -24,15 +25,28 @@ ui <- fluidPage(
   tags$head(
     tags$style(HTML("
       table {
+        width: 100%;
         border-collapse: collapse;
       }
 
-      tbody tr:nth-child(even) {
+      th {
         background-color: #f2f2f2;
       }
 
+      tbody tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+
       tbody tr:nth-child(odd) {
-        background-color: white;
+        background-color: #ffffff;
+      }
+
+      tbody tr:hover {
+        background-color: #e6f2ff;
+      }
+
+      th, td {
+        padding: 6px 10px;
       }
     "))
   ),
@@ -173,23 +187,17 @@ server <- function(input, output, session) {
     
   })
   
-  output$preview <- renderDT({
+  output$preview <- renderTable({
     
-    datatable(
-      data_clean() %>%
-        head(10) %>%
-        mutate(
-          Date = format(Date, "%d-%b-%Y")
-        ),
-      options = list(
-        pageLength = 10,
-        dom = "t"
-      ),
-      rownames = FALSE,
-      class = "stripe hover"
-    )
+    req(data_clean())
     
-  })
+    data_clean() %>%
+      head(10) %>%
+      mutate(
+        Date = format(Date, "%d-%b-%Y")
+      )
+    
+  }, rownames = FALSE)
   
 }
 
